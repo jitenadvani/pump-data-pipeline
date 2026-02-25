@@ -723,11 +723,11 @@ if st.session_state.generation_done and st.session_state.generated_data:
     st.markdown('</div>', unsafe_allow_html=True)
 
     if send_clicked:
-        SERVER_IP = "localhost"
+        API_BASE = "https://pumpdata.duckdns.org/api"
         with st.spinner("Transmitting data to ingestion service…"):
             try:
                 resp = requests.post(
-                    f"http://{SERVER_IP}:8000/upload",
+                    f"{API_BASE}/upload",
                     json={"content": st.session_state.generated_data},
                     timeout=30,
                 )

@@ -421,8 +421,7 @@ file_prefix = st.sidebar.text_input(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔌 API Server")
-server_ip = st.sidebar.text_input("Server IP", value="localhost", key="server_ip_input")
-api_base  = f"http://{server_ip}:8000"
+API_BASE = "https://pumpdata.duckdns.org/api"
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
@@ -517,7 +516,7 @@ else:
         <strong>📡 Device Simulator API</strong>
     </p>
     <p style="font-family:'Work Sans',sans-serif;color:#3b82f6;font-size:0.85rem;margin-bottom:1.2rem;">
-        Endpoint: <code style="background:#dbeafe;padding:2px 6px;border-radius:4px;">{api_base}/latest</code>
+        Endpoint: <code style="background:#dbeafe;padding:2px 6px;border-radius:4px;">{API_BASE}/latest</code>
     </p>
     """, unsafe_allow_html=True)
 
@@ -540,7 +539,7 @@ else:
     if fetch_clicked:
         with st.spinner("🔄 Connecting to ingestion service…"):
             try:
-                resp = requests.get(f"{api_base}/latest", timeout=15)
+                resp = requests.get(f"{API_BASE}/latest", timeout=15)
                 if resp.status_code == 200:
                     payload = resp.json()
                     content = payload.get("content", "").strip()
@@ -559,7 +558,7 @@ else:
                     st.session_state.fetch_msg      = f"⚠️ Server returned status {resp.status_code}. Check the ingestion service."
                     st.session_state.fetch_msg_type = "error"
             except requests.exceptions.ConnectionError:
-                st.session_state.fetch_msg      = f"🔌 Unable to connect to <strong>{api_base}</strong>. Ensure api_server.py is running."
+                st.session_state.fetch_msg      = f"🔌 Unable to connect to <strong>{API_BASE}</strong>. Ensure api_server.py is running."
                 st.session_state.fetch_msg_type = "error"
             except requests.exceptions.Timeout:
                 st.session_state.fetch_msg      = "⏱️ Request timed out. The server may be busy — please retry."

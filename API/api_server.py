@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI()
+app = FastAPI(root_path="/api")
 
 # In-memory storage
 latest_txt_data = {"content": None}
