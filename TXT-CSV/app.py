@@ -421,7 +421,7 @@ file_prefix = st.sidebar.text_input(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔌 API Server")
-API_BASE = "https://pumpdata.duckdns.org/api"
+API_BASE = "http://api:8000"
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
