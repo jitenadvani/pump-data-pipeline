@@ -723,7 +723,7 @@ if st.session_state.generation_done and st.session_state.generated_data:
     st.markdown('</div>', unsafe_allow_html=True)
 
     if send_clicked:
-        API_BASE = "/api"
+        API_BASE = "https://pumpdata.duckdns.org/api"
         with st.spinner("Transmitting data to ingestion service…"):
             try:
                 resp = requests.post(

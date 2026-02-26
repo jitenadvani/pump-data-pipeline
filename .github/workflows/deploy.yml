@@ -1,25 +1,36 @@
-name: Deploy to EC2
+version: "3.8"
 
-on:
-  push:
-    branches: [ main ]
+services:
+  api:
+    build: .
+    command: uvicorn API.api_server:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  converter:
+    build: .
+    command: >
+      streamlit run TXT-CSV/app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+      --server.maxUploadSize 200
+      --server.enableCORS false
+      --server.enableXsrfProtection false
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 34.237.96.173
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/pump-data-pipeline
-            git pull
-            docker-compose down
-            docker-compose up -d --build
+  device:
+    build: .
+    command: >
+      streamlit run Device/device.py
+      --server.port 8502
+      --server.address 0.0.0.0
+      --server.maxUploadSize 200
+      --server.enableCORS false
+      --server.enableXsrfProtection false
+    ports:
+      - "8502:8502"
+    depends_on:
+      - api
