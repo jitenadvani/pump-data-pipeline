@@ -723,7 +723,7 @@ if st.session_state.generation_done and st.session_state.generated_data:
     st.markdown('</div>', unsafe_allow_html=True)
 
     if send_clicked:
-        API_BASE = "http://api:8000"
+        API_BASE = "/api"
         with st.spinner("Transmitting data to ingestion service…"):
             try:
                 resp = requests.post(

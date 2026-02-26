@@ -421,7 +421,7 @@ file_prefix = st.sidebar.text_input(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔌 API Server")
-api_base = "http://api:8000"
+api_base = "/api"
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
