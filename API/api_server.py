@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI()  # No root_path here
+app = FastAPI(root_path="/api")
 
 latest_txt_data = {"content": None}
 
