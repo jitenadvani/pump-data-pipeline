@@ -443,7 +443,7 @@ if st.sidebar.button("🗑️ Clear All Data", use_container_width=True, key="si
 # ============================================================
 
 st.markdown('<h1 class="custom-header">Vibration Data Converter</h1>', unsafe_allow_html=True)
-st.markdown("### 🚀 CI/CD TEST — pipeline working.")
+st.markdown('### 🚀 CI/CD TEST — pipeline working.', unsafe_allow_html=True)
 st.markdown('<p class="custom-subtitle">Process device vibration logs into structured data</p>', unsafe_allow_html=True)
 
 st.markdown("""
