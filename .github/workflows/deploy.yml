@@ -2,7 +2,12 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2-main
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -13,13 +18,46 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: 34.237.96.173
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 30m
           script: |
+            set -euo pipefail
+
             cd ~/pump-data-pipeline
-            git pull
-            docker-compose down
-            docker-compose up -d --build
+
+            # Make deploy deterministic on the exact main branch state.
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Support both Docker Compose v1 and v2.
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              echo "Neither 'docker compose' nor 'docker-compose' was found on EC2"
+              exit 1
+            fi
+
+            $COMPOSE_CMD down --remove-orphans || true
+            $COMPOSE_CMD up -d --build --remove-orphans
+
+            # Wait for app after restart to reduce transient 502s.
+            for i in {1..12}; do
+              if curl -fsS http://localhost/api/latest >/dev/null; then
+                echo "Health check passed"
+                exit 0
+              fi
+              echo "Health check attempt $i/12 failed; retrying in 5s..."
+              sleep 5
+            done
+
+            echo "Health check failed after deployment; printing compose status/logs"
+            $COMPOSE_CMD ps || true
+            $COMPOSE_CMD logs --tail=200 || true
+            exit 1
