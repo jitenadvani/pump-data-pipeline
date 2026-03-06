@@ -560,18 +560,41 @@ def cached_to19(key: str, df57: pd.DataFrame) -> pd.DataFrame:
 #  Device name: supplied via manual input before fetch.
 #  Sampling rate, duration, all stats derived from TXT timestamps.
 # ═══════════════════════════════════════════════════════════════════════
-def extract_meta(content: str, device_name: str = "") -> dict:
+def extract_meta(content: str, device_name_override: str = "",
+                 payload: dict = None) -> dict:
+    """
+    Extract session metadata.
+    Priority for each field:
+      1. API payload keys  (device_name, sampling_rate, duration_val)  ← from api_server.py
+      2. Manual text input (device_name_override)
+      3. Auto-detect from TXT timestamps
+    """
+    payload = payload or {}
     tre  = re.compile(r"(\d+/\d+/\d+)\s+(\d+:\d+:\d+)\s+(AM|PM)")
     ts   = tre.findall(content)
     t_s  = f"{ts[0][0]} {ts[0][1]} {ts[0][2]}"    if ts else "—"
     t_e  = f"{ts[-1][0]} {ts[-1][1]} {ts[-1][2]}" if ts else "—"
     rec  = content.count("#Vibration Value")
     sz   = round(len(content) / 1024, 1)
-    dn   = device_name.strip() if device_name.strip() else "—"
 
-    # Sampling rate from gap between first two consecutive timestamps
+    # ── Device name ───────────────────────────────────────────
+    # payload["device_name"] comes from device.py via api_server.py
+    dn = "—"
+    raw_dn = payload.get("device_name") or device_name_override
+    if raw_dn and str(raw_dn).strip().lower() not in ("", "none", "null", "-"):
+        dn = str(raw_dn).strip()
+
+    # ── Sampling rate ─────────────────────────────────────────
+    # payload["sampling_rate"] is the int seconds value from device.py
     sr, sr_secs = "—", None
-    if len(ts) >= 2:
+    raw_sr = payload.get("sampling_rate")
+    if raw_sr is not None:
+        try:
+            sr_secs = int(raw_sr)
+            sr = SR_LABEL.get(sr_secs, f"{sr_secs} sec")
+        except: pass
+    # Fallback: auto-detect from consecutive timestamps
+    if sr_secs is None and len(ts) >= 2:
         try:
             fmt = "%m/%d/%Y %I:%M:%S %p"
             d   = int(abs((
@@ -583,27 +606,35 @@ def extract_meta(content: str, device_name: str = "") -> dict:
                 sr = SR_LABEL.get(d, f"{d} sec")
         except: pass
 
-    # Duration from span of all timestamps
+    # ── Duration ──────────────────────────────────────────────
+    # payload["duration_val"] is int hours from device.py
     dur, dur_hours = "—", None
-    if len(ts) >= 2:
+    raw_dur = payload.get("duration_val")
+    if raw_dur is not None:
+        try:
+            dur_hours = int(raw_dur)
+            dur = f"{dur_hours} hour{'s' if dur_hours != 1 else ''}"
+        except: pass
+    # Fallback: compute from timestamp span
+    if dur_hours is None and len(ts) >= 2:
         try:
             fmt  = "%m/%d/%Y %I:%M:%S %p"
             secs = int((
                 datetime.strptime(f"{ts[-1][0]} {ts[-1][1]} {ts[-1][2]}", fmt) -
-                datetime.strptime(f"{ts[0][0]}  {ts[0][1]}  {ts[0][2]}",  fmt)
+                datetime.strptime(f"{ts[0][0]} {ts[0][1]} {ts[0][2]}",   fmt)
             ).total_seconds())
             if secs > 0:
-                h, m = secs//3600, (secs%3600)//60
+                h, m = secs // 3600, (secs % 3600) // 60
                 dur = f"{h}h {m:02d}m" if h else f"{m}m {secs%60:02d}s"
                 dur_hours = max(1, h)
         except: pass
 
-    # Derived stats
+    # ── Derived stats ─────────────────────────────────────────
     rph = exp_rec = completeness = "—"
     if sr_secs:
         rph = f"{3600 // sr_secs:,}"
         if dur_hours:
-            exp  = (dur_hours * 3600) // sr_secs
+            exp = (dur_hours * 3600) // sr_secs
             exp_rec = f"{exp:,}"
             if rec > 0 and exp > 0:
                 completeness = f"{min(100.0, round(rec / exp * 100, 1))}%"
@@ -810,7 +841,7 @@ with col_api:
                 if resp.status_code == 200:
                     content = resp.json().get("content", "").strip()
                     if content:
-                        meta  = extract_meta(content, device_name_input)
+                        meta  = extract_meta(content, device_name_input, payload)
                         dn    = meta["device_name"] if meta["device_name"] != "—" else "Device"
                         sname = f"{dn} · {meta['fetched_date']} {meta['fetched_at']}"
                         if sname not in [s["name"] for s in st.session_state.api_sessions]:
