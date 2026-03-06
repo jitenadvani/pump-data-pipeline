@@ -839,6 +839,7 @@ with col_api:
             try:
                 resp = requests.get(f"{API_BASE}/latest", timeout=15)
                 if resp.status_code == 200:
+                    payload = resp.json()
                     content = resp.json().get("content", "").strip()
                     if content:
                         meta  = extract_meta(content, device_name_input, payload)
