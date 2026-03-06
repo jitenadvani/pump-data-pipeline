@@ -18,8 +18,11 @@ jobs:
           host: 34.237.96.173
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
           script: |
             cd ~/pump-data-pipeline
-            git pull
+            git fetch origin
+            git reset --hard origin/main
             docker-compose down
+            docker image prune -f
             docker-compose up -d --build
